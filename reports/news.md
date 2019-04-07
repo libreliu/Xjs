@@ -1,8 +1,35 @@
 # IncludeOS on ARM 调研报告
 
-## 项目背景
+## 项目简介
 
 Includeos是一个 unikernel 的 C++ 实现，并可以在 bare-metal 上运行， IncludeOS 提供了丰富的用于网络编程的库，但是目前还不支持在 ARM 上运行。 IncludeOS 可以显著加快启动速度，并且减少进程切换等的无谓开销。现有的树莓派的 Unikernel 主要是对一些开关 GPIO 等相关的实现，但是对网络的支持很弱。在 IoT 领域中，有许多应用场景对延迟的要求十分苛刻，而本项目意在将 IncludeOS 移植到ARM上，这样对延迟敏感的 IoT 应用场景会有很大帮助。
+
+## 项目背景
+
+### IoT
+
+IoT概念的提出，物联网的发展需要更强的及时性，降低延迟是工程师们一直在研究的重要课题。
+
+### 什么是Unikernel
+
+根据 kernel 的设计风格不同，操作系统可以被分成很多种类，比如 Linux 使用的是宏内核， Windows 使用的是混合内核。还有一种比较特别的内核类型叫做**外内核**(Exokernel)。传统的内核对硬件都做了抽象，避免应用程序直接访问硬件资源，只提供抽象层提供的接口，而外内核的不同之处在于它减少层次抽象并允许应用程序直接访问硬件和系统资源。用了Exokernel难道还要自己写各种硬件驱动，自己实现网络协议栈吗？为了避免使用 Exokernel 的开发人员自己手写各种硬件驱动等问题解决方案就是使用 Library Operation System。首先对硬件设备的驱动进行抽象，也就是定义一组接口，再针对不同硬件设备提供实现 library，在编译的时候，根据硬件配置引入合适的 library，应用和 library 一起构成了整个系统。这样做的优点如下：
+
+- 减少了抽象层，可以直接操作硬件资源，操作系统可以具有更好的性能。
+- 只包含应用和必要的 library ，没用冗余，资源占用更少。
+
+Unikernel 也就由此而来。
+Unikernel 的官方解释是
+> Unikernels are specialised, single-address-space machine images constructed by using library operating systems.
+即它是专用的，单地址空间的，使用 library OS 构建出来的镜像。
+![Unikernel-arch](unikernel_arch.jpg)
+Unikernel 不仅可以运行在 bare-metal 上，也可以运行在虚拟机上。
+Unikernel 的优点在于：
+- 性能更好。相比于Linux/Windows这种通用操作系统，Unikernel减少了复杂的软件抽象层。由于“内核”和应用程序没有隔离，运行在同一个地址空间中，消除了用户态和内核态转换以及数据复制的开销。最后，构建时可以采用全局优化技术，比如前面的MirageOS，可以进一步优化性能。
+- 资源占用更少。Linux/Windows里通常包含了太多东西，不论你需不需要，都会包含在系统里，比如各种文件系统，实际上用到的也就一两种。Unikernel里只包含了程序真正依赖到的东西，无论镜像，还是启动后所占用的资源都非常小。
+- 启动快，这个就很好理解了，因为包含的东西少，系统层初始化非常快，通常是几ms到十几ms，真正的时间会用在应用程序本身的启动上。
+- 更安全，因为Unikernel里运行的内容少，减少了潜在漏洞数量，相对攻击面就很小。
+
+但 Unikernel 也存在一些缺点，最大的缺点就是 Unikernel 是完全不可调试的，出现问题的解决方案只有重启或者重写。
 
 ## 立项依据
 
@@ -77,6 +104,10 @@ Together, I believe unikernels have the potential to change the cloud-computing 
 
 
 #### UniK
+
+
+### 为什么选择 IncludeOS
+
 
 
 
