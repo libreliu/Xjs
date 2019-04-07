@@ -1,5 +1,5 @@
-# IncludeOS on ARM 调研报告
-- [IncludeOS on ARM 调研报告](#includeos-on-arm-%E8%B0%83%E7%A0%94%E6%8A%A5%E5%91%8A)
+# includeOS on ARM 调研报告
+- [includeOS on ARM 调研报告](#includeos-on-arm-%E8%B0%83%E7%A0%94%E6%8A%A5%E5%91%8A)
   - [项目简介](#%E9%A1%B9%E7%9B%AE%E7%AE%80%E4%BB%8B)
   - [项目背景](#%E9%A1%B9%E7%9B%AE%E8%83%8C%E6%99%AF)
     - [IoT](#iot)
@@ -17,13 +17,17 @@
       - [Pumprun](#pumprun)
       - [runtime-js](#runtime-js)
       - [UniK](#unik)
-    - [为什么选择 IncludeOS](#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%80%89%E6%8B%A9-includeos)
+    - [为什么选择 includeOS](#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%80%89%E6%8B%A9-includeos)
   - [前瞻性分析](#%E5%89%8D%E7%9E%BB%E6%80%A7%E5%88%86%E6%9E%90)
   - [相关工作](#%E7%9B%B8%E5%85%B3%E5%B7%A5%E4%BD%9C)
-
+    - [Ultibo](#ultibo)
+      - [Ultibo的简介](#ultibo%E7%9A%84%E7%AE%80%E4%BB%8B)
+      - [Ultibo的优点](#ultibo%E7%9A%84%E4%BC%98%E7%82%B9)
+      - [Ultibo的缺点](#ultibo%E7%9A%84%E7%BC%BA%E7%82%B9)
+    - [Raspbian](#raspbian)
 ## 项目简介
 
-Includeos是一个 unikernel 的 C++ 实现，并可以在 bare-metal 上运行， IncludeOS 提供了丰富的用于网络编程的库，但是目前还不支持在 ARM 上运行。 IncludeOS 可以显著加快启动速度，并且减少进程切换等的无谓开销。现有的树莓派的 Unikernel 主要是对一些开关 GPIO 等相关的实现，但是对网络的支持很弱。在 IoT 领域中，有许多应用场景对延迟的要求十分苛刻，而本项目意在将 IncludeOS 移植到ARM上，这样对延迟敏感的 IoT 应用场景会有很大帮助。
+includeOS是一个 unikernel 的 C++ 实现，并可以在 bare-metal 上运行， includeOS 提供了丰富的用于网络编程的库，但是目前还不支持在 ARM 上运行。 includeOS 可以显著加快启动速度，并且减少进程切换等的无谓开销。现有的树莓派的 Unikernel 主要是对一些开关 GPIO 等相关的实现，但是对网络的支持很弱。在 IoT 领域中，有许多应用场景对延迟的要求十分苛刻，而本项目意在将 includeOS 移植到ARM上，这样对延迟敏感的 IoT 应用场景会有很大帮助。
 
 ## 项目背景
 
@@ -68,8 +72,8 @@ Unikernel 的优点在于：
 ## 立项依据
 
 ### 现有的 Unikernel 实现
-http://unikernel.org/projects/
 
+http://unikernel.org/projects/
 
 #### ClickOS
 
@@ -97,8 +101,8 @@ Glasgow Haskell 编译器工具套件的一个移植，使开发人员能够编�
 
 #### includeOS
 
-> In the summer of 2018 Horizon 2020 awarded the IncludeOS project funds to port IncludeOS to the ARM architecture. During 2019 we expect IncludeOS to boot on the Raspberry Pi M3 B+. Our goal is to provide your IoT project with a secure and real-time capable operating system on CPU platforms.
-> https://www.includeos.org/blog/2018/port-to-arm.html
+> In the summer of 2018 Horizon 2020 awarded the includeOS project funds to port includeOS to the ARM architecture. During 2019 we expect includeOS to boot on the Raspberry Pi M3 B+. Our goal is to provide your IoT project with a secure and real-time capable operating system on CPU platforms.
+> https://www.includeOS.org/blog/2018/port-to-arm.html
 > 待交付，应该可行。
 
 #### LING
@@ -140,12 +144,47 @@ Together, I believe unikernels have the potential to change the cloud-computing 
 #### UniK
 
 
-### 为什么选择 IncludeOS
+### 为什么选择 includeOS
+我们选择 includeOS，出于以下原因：
+- includeOS 使用 C++ 语言，符合团队知识背景。
+- includeOS 拥有裸机支持。
+- includeOS 开发正处于活跃状态。
+- includeOS 可以为未来的 IoT 应用提供高性能和完善的网络支持。
 
-
+其他的 Unikernel 实现有的不符合团队的知识背景，也有一些已经处于停止开发状态，没有技术支持，考虑到上述优点，我们最终选择了 includeOS。
 
 
 ## 前瞻性分析
 
 
 ## 相关工作
+
+### Ultibo
+
+[Ultibo Website](https://ultibo.org/)
+
+#### Ultibo的简介
+
+Ultibo 是一个为 Raspberry Pi 上的嵌入式或者裸机开发的全功能环境。它并不是一个操作系统，但却可以提供许多与操作系统相同的服务，如内存管理，线程，网络和文件系统等。使用 Ultibo 提供通用的功能和服务，开发者无需从头开始开发工作。它可以使嵌入式应用程序的开发工作尽可能与其他平台的开发相似。开发者当然希望简单地使用 Ultibo 提供的 API 来开发连接设备的应用程序，或物联网（IoT）设备，Ultibo 支持 USB 和 TCP/IP 和 UDP 等标准协议或GPIO控制。Ultibo 也可以用来体验操作系统设计和嵌入式开发，避免从头开始创建所有环境，并允许开发者专注于在已经具有基本开发环境的情况下进行更多创新和尝试。
+
+Ultibo 还可以用来作为核心探索特定的 ARM 技术，因为拥有完整而且不受限制的硬件访问，开发者可以直接控制 CPU 等硬件，需要时也可以使用 Ultibo 提供的网络连接和日志记录等服务。
+
+Ultibo 使用 Pascal 语言实现，支持几乎所有的 Free Pascal RTL 功能，并且提供集成开发环境。
+
+#### Ultibo的优点
+
+- 已经可以在 ARM 架构下（如树莓派）运行。
+- 有集成开发环境，以及社区支持。
+
+#### Ultibo的缺点
+
+- 对网络编程的支持弱，不适用于对延迟敏感的 IoT 设备。
+- 和 C 和 C++ 语言相比，Pascal 不够简洁，不太适合用来构建系统。
+- 现阶段使用 Pascal 构建的系统项目少。
+
+### Raspbian
+
+Raspbian 是一个基于 Debian 的专为树莓派设计的类 Unix 操作系统。它虽然不是树莓派官方编写的操作系统，但是从2015年起被树莓派官方基金会所支持。虽然它是现在树莓派上最流行的操作系统之一，但是也存在着很多缺点：
+- 如果作为 IoT 设备的系统使用则冗余过多，硬件资源无法完全被利用，效率较低。
+- 系统启动速度较慢。
+- 系统对实时性的支持较差，无法用于对延迟敏感的 IoT 设备上。
