@@ -78,12 +78,17 @@ http://unikernel.org/projects/
 #### ClickOS
 
 ClickOS 是基于开源虚拟化技术的高性能虚拟化软件平台。ClickOS 的虚拟机很小（5MB），可以快速启动（20ms），延迟很小（45us）。
+ClickOS 的基础是 Mini-OS，Mini-OS 是使用 C 语言编写的，ClickOS 是使用 C++ 编写的，所以 ClickOS 开发者重新开发了 Mini-OS 的开发工具链，编写了一种 `Linux-independent C++ cross-compiler` 叫做 `newlibc`。
 
-（可以考虑，但是没有明确的 ARM Portibility，并且没有 Bare-metal）。
+但是 ClickOS 不支持 ARM ，并且没有 Bare-metal 的支持，目前只支持虚拟机。
 
 #### Clive 
 
-用 Go 语言编写的在分布式和云计算环境中工作的操作系统；裸机支持还在进行，且开发不是非常活跃。
+用 Go 语言编写的在分布式和云计算环境中工作的操作系统，它的主要设计理念是：
+- 云中没有软件堆栈。应用程序和服务与允许它们在裸硬件上运行的库一起编译。
+- 系统接口是按照类似CSP的风格设计的。应用程序和组件通过通道进行通信，并且通道桥接到网络，管道和任何其他 I/O 工件。
+
+Clive的裸机支持还在开发进行中，但开发不是非常活跃，基本已经停滞。
 
 #### DrawBridge
 
