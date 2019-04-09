@@ -79,6 +79,8 @@ boot my_service
 即可打开 QEMU，并且以`my_service`这个 binary 启动。
 
 ### includeOS 构建过程
+Ref: [The Build Process](https://includeos.readthedocs.io/en/latest/The-build-process.html)
+
 Installing IncludeOS means building all the OS components, such as IRQ manager, PCI manager, the OS class etc., combining them into a static library os.a using GNU ar, and putting it in an architecture specific directory under $INCLUDEOS_PREFIX along with all the public os-headers (the “IncludeOS API”). This is what you’ll be including parts of, into the service. Device drivers are built as their own libraries, and must be explicitly added in the CMakeLists.txt of your service. This makes it possible to only include the drivers you want, while still not having to explicitly mention a particular driver in your code.
 
 安装 IncludeOS 意味着构建所有 OS 组件，比如 IRQ 管理器，PCI 管理器，OS 类——把他们用 GNU `ar` 整合到一个静态库 `os.a` 中，然后
@@ -95,6 +97,14 @@ To run with vmware or virtualbox, the image has to be converted into a supported
 Inspect the main CMakeLists.txt and then follow the trail of cmake scripts in the added subfolders for information about how the OS build happens. For more information about building individual services, check out the CMakeLists.txt of one of the example services, plus the linker script, linker.ld for the layout of the final binary. Note that most of the CMake magic for link- and include paths, adding drivers, plugins etc. is tucked away in the post.service.cmake.
 
 ### includeOS 启动过程（x86）
+
+1. When booting from a "hard drive", BIOS loads the first stage bootloader, either grub or [bootloader.asm](https://github.com/hioa-cs/IncludeOS/blob/master/src/platform/x86_pc/boot/bootloader.asm), starting at `_start`.
+2. The bootloader - or Qemu with `-kernel` - sets up segments, switches to 32-bit protected mode, loads the service (an elf-binary `your_service` consisting of the OS classes, libraries and your service) from disk. For a multiboot compliant boot system (grub or qemu -kernel) the machine is now in the state [specified by multiboot](https://www.gnu.org/software/grub/manual/multiboot/multiboot.html#Machine-state).
+3. The bootloader hands over control to the OS, by jumping to the `_start` symbol inside [start.asm](https://github.com/hioa-cs/IncludeOS/blob/master/src/platform/x86_pc/start.asm#L61). From there it will call architecture specific initialization and eventually [kernel_start.cpp](https://github.com/hioa-cs/IncludeOS/blob/master/src/platform/x86_pc/kernel_start.cpp). Note that this can be overridden to make custom kernels, such as the minimal [x86_nano](https://github.com/hioa-cs/IncludeOS/blob/master/src/platform/x86_nano) platform used for the chainloader.
+4. The OS initializes `.bss`, calls global constructors, and then calls `OS::start` in the [OS class](https://github.com/hioa-cs/IncludeOS/blob/master/api/kernel/os.hpp).
+5. The OS class sets up interrupts, initializes devices, plugins, drivers etc.
+6. Finally the OS class (still `OS::start`) calls `Service::start()` (as for instance [here](https://github.com/hioa-cs/IncludeOS/blob/master/examples/demo_service/service.cpp)) or `main()` if you prefer that (such as [here](https://github.com/hioa-cs/IncludeOS/blob/master/examples/syslog/service.cpp)), either of which must be provided by your service.
+7. Once your service is done initializing, e.g. having indirectly subscribed to certain events like incoming network packets by setting up a HTTP server, the OS resumes the [OS::event_loop()](https://github.com/hioa-cs/IncludeOS/blob/master/src/kernel/os.cpp) which again drives your service.
 
 ### includeOS 源码概览
 
