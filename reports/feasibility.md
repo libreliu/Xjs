@@ -106,9 +106,79 @@ Inspect the main CMakeLists.txt and then follow the trail of cmake scripts in th
 6. Finally the OS class (still `OS::start`) calls `Service::start()` (as for instance [here](https://github.com/hioa-cs/IncludeOS/blob/master/examples/demo_service/service.cpp)) or `main()` if you prefer that (such as [here](https://github.com/hioa-cs/IncludeOS/blob/master/examples/syslog/service.cpp)), either of which must be provided by your service.
 7. Once your service is done initializing, e.g. having indirectly subscribed to certain events like incoming network packets by setting up a HTTP server, the OS resumes the [OS::event_loop()](https://github.com/hioa-cs/IncludeOS/blob/master/src/kernel/os.cpp) which again drives your service.
 
+### includeOS Digest
+说明：(external) 表示此符号/函数不由当前文件提供。
+
+首先，由 Multiboot Bootloader 装载后的二进制映像文件从`_start`开始执行。
+
+#### `_start` @ `src/platform/x86_pc/start.asm`
+`_start`装入一个简单的 GDT，设置段寄存器 cx，ss，ds，es，fs，gs，设置 esp 和 ebp。
+
+调用 `enable_sse`，`enable_fpu_native`，`enable_xsave`和`enable_avx`，分别启用 SSE，现代 x87 FPU 异常处理，如果 CPU 支持会再启用`xsave`和`avx`。
+
+完成后首先保存 eax 和 ebx 到`__multiboot_magic`(global)和 `__multiboot_addr`(global)中，然后调用`__arch_start`(external)，如果从`__arch_start`(external)返回则会调用`__start_panic`。
+
+`__start_panic` 将会调用`__serial_print1`(external)，并传参「Panic: OS returned to x86 start.asm. Halting\n」。
+
+====
+Providers:
+- `__arch_start`: `src/arch/i686/arch_start.asm`, `src/arch/x86_64/arch_start_broken.asm`, `src/arch/x86_64/arch_start_broken1.asm`, `src/platform/x86_pc/start.asm`, `src/arch/x86_64/arch_start.asm`
+- `__serial_print1`: `src\platform\x86_pc\serial1.cpp`
+
+#### `__arch_start` @ `src/arch/x86_64/arch_start.asm`
+*Note*: 
+- `global __arch_start:function` 中 `:function` 的作用：[NASM Docs](https://nasm.us/xdoc/2.14.03rc2/html/nasmdoc6.html)
+- `loop label`：用 ECX 控制循环次数，相当于`dec ecx; jne label`。
+- 除了`x86_64`，其它的`arch/`里面也有`arch_start.asm`。
+```
+  GLOBAL, like EXTERN, allows object formats to define private extensions by means of a colon. The elf object format, for example, lets you specify whether global data items are functions or data:
+  global  hashlookup:function, hashtable:data
+```
+总之是 ELF 可以区分符号类型，所以 NASM 加上了这个功能。
+====
+`__arch_start`一开始是 32 位代码段，用`[BITS 32]`标识。
+1. 关闭老的分页机制，设置页表，开启 PAE（物理地址扩展）
+2. 启用 `long mode`，启动分页，加载 64-bit GDT
+3. 跳转到 64 位代码段 `long_mode`
+
+`long_mode`：
+1. cli （Clear Interrupt Flag，关中断）
+2. 重新设置段寄存器，装入 GDT64.Data 选择子
+3. 设置新栈 rsp，rbp
+4. 设置临时 SMP 表
+5. "geronimo!"：edi <= DWORD[__multiboot_magic](external); esi <= DWORD[__multiboot_addr](external)
+6. call `kernel_start`(external)
+
+====
+Providers:
+- `kernel_start`: `src/platform/x86_solo5/kernel_start.cpp`, `src/platform/x86_nano/kernel_start.cpp`, `src/platform/x86_pc/kernel_start.cpp`
+- `__multiboot_magic`: `src/platform/x86_pc/start.asm`, `src/platform/x86_solo5/start.asm`
+
+#### `kernel_start` @ `src\platform\x86_pc\kernel_start.cpp`
+*Note*:
+- `__attribute__((no_sanitize("all")))` 用来「suppress warning」
+- `PRATTLE` 宏在 `KERN_DEBUG` 宏被定义的情况下直接调用`kprintf`(@ `src\platform\x86_pc\serial1.cpp`)；没有定义 `KERN_DEBUG` 则什么也不干。
+- `.bss`(Block Started by Symbol)：在采用段式内存管理的架构中，`.bss` 段通常指存放程序中未初始化的全局变量的一块内存区域。
+- 「自制 `assert`」：`#define Expects(X) if (!(X)) { kprint("Expect failed: " #X "\n");  asm("cli;hlt"); }`
+====
+`kernel_start` 是 `extern "C"` 的一个函数。有两个参数`(uint32_t magic, uint32_t addr)`（就是之前传过来的 Multiboot Magic）
+
+1. ` __init_serial1()` @ `src\platform\x86_pc\serial1.cpp`
+2. 保存 `magic` 和 `addr` 到 `__grub_magic` 和 `__grub_addr`
+3. `__init_sanity_checks()` @ `src\platform\x86_pc\sanity_checks.cpp` ，用来验证内核完整性（CRC 校验）
+4. 检测`free_mem_begin`和`memory_end`，获取可用空余内存地址——通过 Multiboot 引导器 / Softreset 的信息
+   (emmm `OS::memory_end()` 是什么？）
+5. 为了保护 ELF 中的符号信息，调用`_move_symbols`移动符号，再将返回值加到`free_mem_begin`上（保护起来！）
+6. 调用`_init_bss()` 初始化 .bss 段
+7. 调用`OS::init_heap(free_mem_begin, memory_end)`(@ `src/kernel/heap.cpp`) 初始化堆
+8. 调用`_init_syscalls()` 初始化系统调用
+9. 调用`x86::idt_initialize_for_cpu(0);` 初始化 CPU Exceptions。
+10. 调用`_init_elf_parser()` 初始化 ELF Parser
+11. 
 ### includeOS 源码概览
 
 
 ## 技术路线
 
 ## 参考文献
+1. [Introduction to X64 Assembly](https://software.intel.com/en-us/articles/introduction-to-x64-assembly)

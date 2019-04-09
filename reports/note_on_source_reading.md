@@ -5,6 +5,8 @@
 
 可以查看目录下的 C/C++ 函数的 Declaration 和 Define，以及 Called By 信息。
 
+有些信息 Understand 找不到（比如一些 Define），请参见「在 Understand 找不到怎么办？」一节。
+
 ## Cytoscape
 export INSTALL4J_JAVA_HOME=/usr/lib/jvm/java-8-openjdk/jre/
 on Arch
